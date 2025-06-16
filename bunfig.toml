@@ -1,0 +1,19 @@
+# Bun configuration
+
+[install]
+# Use the Bun lockfile format
+lockfile.save = true
+
+[run]
+# Enable hot reloading in development
+hot = true
+
+[test]
+# Test configuration
+coverage = true
+coverageThreshold = 80
+
+# Runtime configuration
+[runtime]
+# Use Bun's built-in .env loader
+dotenv = true

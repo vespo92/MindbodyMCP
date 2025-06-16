@@ -1,0 +1,30 @@
+{
+  "name": "mindbody-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Mindbody API integration",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "clean": "rimraf dist",
+    "prepare": "npm run build",
+    "test:tool": "tsx src/test.ts",
+    "benchmark": "tsx benchmark.ts"
+  },
+  "keywords": ["mcp", "mindbody", "api"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.4",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

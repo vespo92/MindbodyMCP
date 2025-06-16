@@ -1,0 +1,41 @@
+{
+  "name": "mindbody-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Mindbody API integration",
+  "keywords": ["mcp", "mindbody", "api", "fitness", "wellness"],
+  "author": "VinSpo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/mindbody-mcp.git"
+  },
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "test:tool": "bun run tests/test-tool.ts",
+    "benchmark": "bun run tests/benchmark.ts",
+    "node:build": "tsc",
+    "node:start": "node dist/index.js",
+    "node:dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.6",
+    "@types/node": "^22.8.4",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "bun": ">=1.0.0",
+    "node": ">=18.0.0"
+  }
+}
