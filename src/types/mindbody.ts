@@ -116,3 +116,89 @@ export interface TeacherSchedule {
     byClassType: Record<string, number>;
   };
 }
+
+// Additional request/response types
+export interface AddClientToClassRequest {
+  ClientId: string;
+  ClassId: number;
+  RequirePayment?: boolean;
+  Waitlist?: boolean;
+}
+
+export interface RemoveClientFromClassRequest {
+  ClientId: string;
+  ClassId: number;
+  LateCancel?: boolean;
+}
+
+export interface GetClientsRequest {
+  SearchText?: string;
+  ClientIds?: string[];
+  LastModifiedDate?: string;
+  IsProspect?: boolean;
+  Limit?: number;
+  Offset?: number;
+}
+
+export interface GetServicesRequest {
+  ProgramIds?: number[];
+  SessionTypeIds?: number[];
+  LocationId?: number;
+  ClassId?: number;
+  HideRelatedPrograms?: boolean;
+  Limit?: number;
+}
+
+export interface GetPackagesRequest {
+  LocationId?: number;
+  ClassScheduleId?: number;
+  Limit?: number;
+}
+
+export interface GetProductsRequest {
+  ProductIds?: number[];
+  SearchText?: string;
+  CategoryIds?: string[];
+  SubCategoryIds?: string[];
+  SellOnline?: boolean;
+  Limit?: number;
+}
+
+export interface GetLocationsRequest {
+  Limit?: number;
+}
+
+export interface GetProgramsRequest {
+  ScheduleType?: 'All' | 'Class' | 'Enrollment' | 'Appointment';
+  OnlineOnly?: boolean;
+  Limit?: number;
+}
+
+export interface GetSessionTypesRequest {
+  ProgramIds?: number[];
+  OnlineOnly?: boolean;
+  Limit?: number;
+}
+
+export interface GetAppointmentsRequest {
+  StaffIds: number[];
+  LocationIds?: number[];
+  StartDate?: string;
+  EndDate?: string;
+  AppointmentIds?: number[];
+  ClientIds?: string[];
+  Limit?: number;
+}
+
+export interface GetEnrollmentsRequest {
+  LocationIds?: number[];
+  ClassScheduleIds?: number[];
+  StaffIds?: number[];
+  ProgramIds?: number[];
+  SessionTypeIds?: number[];
+  SemesterIds?: number[];
+  CourseIds?: number[];
+  StartDate?: string;
+  EndDate?: string;
+  Limit?: number;
+}

@@ -1,0 +1,64 @@
+# Development files
+.env
+.env.local
+.env.*.local
+*.log
+*.swp
+.DS_Store
+
+# Source files (only publish dist)
+src/
+tests/
+benchmarks/
+
+# Config files
+.github/
+.vscode/
+.idea/
+*.sublime-*
+
+# Documentation
+docs/
+*.md
+!README.md
+!CLAUDE.md
+
+# Build files
+tsconfig.json
+bunfig.toml
+switch.bat
+package.node.json
+
+# Git
+.git/
+.gitignore
+
+# Dependencies
+node_modules/
+bun.lockb
+package-lock.json
+
+# Test files
+*.test.ts
+*.spec.ts
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

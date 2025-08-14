@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 2.0.0)'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish-npm:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build
+        run: npm run node:build
+        
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          
+  publish-github:
+    name: Publish to GitHub Packages
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@vespo92'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build
+        run: npm run node:build
+        
+      - name: Configure package.json for GitHub
+        run: |
+          npm pkg set name="@vespo92/mindbody-mcp"
+          npm pkg set publishConfig.registry="https://npm.pkg.github.com"
+          
+      - name: Publish to GitHub Packages
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-bun:
+    name: Create Bun executable
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+          
+      - name: Install dependencies
+        run: bun install
+        
+      - name: Create standalone executable
+        run: |
+          bun build src/index.ts --compile --outfile mindbody-mcp
+          tar -czf mindbody-mcp-bun.tar.gz mindbody-mcp
+          
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: mindbody-mcp-bun
+          path: mindbody-mcp-bun.tar.gz
+
+  create-docker:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/vespo92/mindbody-mcp:latest
+            ghcr.io/vespo92/mindbody-mcp:${{ github.event.release.tag_name || github.event.inputs.version }}

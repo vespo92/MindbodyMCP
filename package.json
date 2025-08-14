@@ -1,28 +1,65 @@
 {
-  "name": "mindbody-mcp",
-  "version": "1.0.0",
-  "description": "MCP server for Mindbody API integration",
-  "keywords": ["mcp", "mindbody", "api", "fitness", "wellness"],
-  "author": "VinSpo",
+  "name": "@vespo92/mindbody-mcp",
+  "version": "2.0.0",
+  "description": "Comprehensive MCP server for Mindbody API - Complete yoga studio management via AI assistants",
+  "keywords": [
+    "mcp",
+    "mindbody",
+    "api",
+    "fitness",
+    "wellness",
+    "yoga",
+    "pilates",
+    "studio-management",
+    "model-context-protocol",
+    "claude",
+    "ai-assistant"
+  ],
+  "author": "Vinnie Esposito <vinnie@vespo92.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/mindbody-mcp.git"
+    "url": "git+https://github.com/vespo92/MindbodyMCP.git"
   },
-  "main": "src/index.ts",
+  "bugs": {
+    "url": "https://github.com/vespo92/MindbodyMCP/issues"
+  },
+  "homepage": "https://github.com/vespo92/MindbodyMCP#readme",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
+  "bin": {
+    "mindbody-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*",
+    "README.md",
+    "LICENSE",
+    "CLAUDE.md",
+    ".env.example"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "dev": "bun run src/index.ts",
     "start": "bun run src/index.ts",
+    "build": "tsc && chmod +x dist/index.js",
     "test": "bun test",
     "test:tool": "bun run tests/test-tool.ts",
     "benchmark": "bun run tests/benchmark.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit --strict",
     "node:build": "tsc",
     "node:start": "node dist/index.js",
-    "node:dev": "tsx src/index.ts"
+    "node:dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build",
+    "prepare": "npm run build || true"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.6.0",
+    "@modelcontextprotocol/sdk": "^1.17.2",
     "axios": "^1.7.7",
     "dotenv": "^16.4.5",
     "zod": "^3.23.8"

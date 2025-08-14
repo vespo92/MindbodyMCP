@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Development
+.env
+.env.local
+*.log
+node_modules
+.npm
+.yarn
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+tests/
+coverage/
+*.test.ts
+*.spec.ts
+
+# Docs
+docs/
+*.md
+!README.md
+!CLAUDE.md
+
+# Build artifacts
+dist/
+*.tsbuildinfo
+
+# CI/CD
+.github/
+
+# Temporary files
+tmp/
+temp/
