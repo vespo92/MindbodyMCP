@@ -29,7 +29,7 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "bin": {
-    "mindbody-mcp": "./dist/index.js"
+    "mindbody-mcp": "dist/index.js"
   },
   "files": [
     "dist/**/*",
