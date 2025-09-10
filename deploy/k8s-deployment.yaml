@@ -1,0 +1,190 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mindbody-mcp
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mindbody-mcp-config
+  namespace: mindbody-mcp
+data:
+  MCP_TRANSPORT: "sse"
+  MCP_PORT: "3000"
+  MCP_HOST: "0.0.0.0"
+  MCP_SERVER_NAME: "mindbody-mcp"
+  MCP_SERVER_VERSION: "2.0.0"
+  MCP_CORS_ORIGIN: "*"
+  MINDBODY_API_URL: "https://api.mindbodyonline.com/public/v6"
+  CACHE_TTL_MINUTES: "5"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mindbody-mcp-secrets
+  namespace: mindbody-mcp
+type: Opaque
+stringData:
+  MINDBODY_API_KEY: "your-api-key-here"
+  MINDBODY_SITE_ID: "your-site-id-here"
+  MINDBODY_SOURCE_NAME: "your-source-name-here"
+  MINDBODY_SOURCE_PASSWORD: "your-source-password-here"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mindbody-mcp-sse
+  namespace: mindbody-mcp
+  labels:
+    app: mindbody-mcp
+    transport: sse
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mindbody-mcp
+      transport: sse
+  template:
+    metadata:
+      labels:
+        app: mindbody-mcp
+        transport: sse
+    spec:
+      containers:
+      - name: mindbody-mcp
+        image: mindbody-mcp:latest
+        imagePullPolicy: Always
+        command: ["bun", "run", "dist/index.js", "--transport", "sse"]
+        ports:
+        - containerPort: 3000
+          name: sse
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: mindbody-mcp-config
+        - secretRef:
+            name: mindbody-mcp-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mindbody-mcp-sse
+  namespace: mindbody-mcp
+  labels:
+    app: mindbody-mcp
+    transport: sse
+spec:
+  type: ClusterIP
+  selector:
+    app: mindbody-mcp
+    transport: sse
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: sse
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mindbody-mcp-hpa
+  namespace: mindbody-mcp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mindbody-mcp-sse
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mindbody-mcp-ingress
+  namespace: mindbody-mcp
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"
+    nginx.ingress.kubernetes.io/send-timeout: "86400"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization, X-Request-ID"
+    nginx.ingress.kubernetes.io/cors-max-age: "86400"
+spec:
+  tls:
+  - hosts:
+    - mcp.yourdomain.com
+    secretName: mindbody-mcp-tls
+  rules:
+  - host: mcp.yourdomain.com
+    http:
+      paths:
+      - path: /sse
+        pathType: Prefix
+        backend:
+          service:
+            name: mindbody-mcp-sse
+            port:
+              number: 3000
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: mindbody-mcp-sse
+            port:
+              number: 3000
+      - path: /info
+        pathType: Exact
+        backend:
+          service:
+            name: mindbody-mcp-sse
+            port:
+              number: 3000

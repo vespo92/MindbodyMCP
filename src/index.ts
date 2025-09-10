@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
+import http from 'http';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Load environment variables
 dotenv.config();
@@ -1021,11 +1027,237 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// Start the server
-async function main() {
+// Parse command-line arguments
+function parseArgs(): { transport: 'stdio' | 'sse', port?: number, host?: string, sslCert?: string, sslKey?: string } {
+  const args = process.argv.slice(2);
+  let transport: 'stdio' | 'sse' = 'stdio';
+  let port: number | undefined;
+  let host: string | undefined;
+  let sslCert: string | undefined;
+  let sslKey: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--transport' || arg === '-t') {
+      const value = args[++i];
+      if (value === 'sse' || value === 'stdio') {
+        transport = value;
+      }
+    } else if (arg === '--port' || arg === '-p') {
+      port = parseInt(args[++i], 10);
+    } else if (arg === '--host' || arg === '-h') {
+      host = args[++i];
+    } else if (arg === '--ssl-cert') {
+      sslCert = args[++i];
+    } else if (arg === '--ssl-key') {
+      sslKey = args[++i];
+    }
+  }
+
+  // Check environment variables as fallback
+  if (!transport && process.env.MCP_TRANSPORT) {
+    transport = process.env.MCP_TRANSPORT.toLowerCase() as 'stdio' | 'sse';
+  }
+  if (!port && process.env.MCP_PORT) {
+    port = parseInt(process.env.MCP_PORT, 10);
+  }
+  if (!host && process.env.MCP_HOST) {
+    host = process.env.MCP_HOST;
+  }
+  if (!sslCert && process.env.MCP_SSL_CERT) {
+    sslCert = process.env.MCP_SSL_CERT;
+  }
+  if (!sslKey && process.env.MCP_SSL_KEY) {
+    sslKey = process.env.MCP_SSL_KEY;
+  }
+
+  return { transport, port, host, sslCert, sslKey };
+}
+
+// Start SSE server
+async function startSSEServer(config: { port?: number, host?: string, sslCert?: string, sslKey?: string }) {
+  const port = config.port || 3000;
+  const host = config.host || '0.0.0.0';
+  
+  // Create HTTP/HTTPS server based on SSL configuration
+  let httpServer: http.Server | https.Server;
+  
+  if (config.sslCert && config.sslKey) {
+    // HTTPS server for production
+    try {
+      const sslOptions = {
+        cert: fs.readFileSync(config.sslCert),
+        key: fs.readFileSync(config.sslKey),
+      };
+      httpServer = https.createServer(sslOptions);
+      console.error(`Starting HTTPS SSE server on ${host}:${port}`);
+    } catch (error) {
+      console.error('Failed to load SSL certificates:', error);
+      console.error('Falling back to HTTP server');
+      httpServer = http.createServer();
+    }
+  } else {
+    // HTTP server for development
+    httpServer = http.createServer();
+    console.error(`Starting HTTP SSE server on ${host}:${port}`);
+  }
+
+  // Handle HTTP requests
+  httpServer.on('request', async (req, res) => {
+    // Set CORS headers for all requests
+    const corsOrigin = process.env.MCP_CORS_ORIGIN || '*';
+    
+    // Handle OPTIONS preflight requests
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': corsOrigin,
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Request-ID',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400'
+      });
+      res.end();
+      return;
+    }
+    
+    // Health check endpoint
+    if (req.url === '/health' && req.method === 'GET') {
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': corsOrigin
+      });
+      res.end(JSON.stringify({ 
+        status: 'healthy',
+        server: 'mindbody-mcp',
+        version: process.env.MCP_SERVER_VERSION || '2.0.0',
+        transport: 'sse',
+        timestamp: new Date().toISOString()
+      }));
+      return;
+    }
+    
+    // Server info endpoint
+    if (req.url === '/info' && req.method === 'GET') {
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': corsOrigin
+      });
+      res.end(JSON.stringify({
+        name: process.env.MCP_SERVER_NAME || 'mindbody-mcp',
+        version: process.env.MCP_SERVER_VERSION || '2.0.0',
+        description: 'Comprehensive MCP server for Mindbody API',
+        capabilities: {
+          tools: true,
+          resources: false,
+          prompts: false
+        },
+        transport: {
+          type: 'sse',
+          endpoint: '/sse',
+          cors: true
+        }
+      }));
+      return;
+    }
+    
+    // SSE endpoint - create transport for each connection
+    if (req.url === '/sse' && req.method === 'GET') {
+      // Set SSE headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': corsOrigin,
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Request-ID',
+        'Access-Control-Allow-Credentials': 'true',
+        'X-Accel-Buffering': 'no' // Disable Nginx buffering
+      });
+      
+      // Create SSE transport for this connection
+      const transport = new SSEServerTransport('/sse', res as any, {
+        // DNS rebinding protection options
+        enableDnsRebindingProtection: false, // Set to true in production with proper allowed hosts
+        allowedHosts: process.env.MCP_ALLOWED_HOSTS?.split(','),
+        allowedOrigins: process.env.MCP_ALLOWED_ORIGINS?.split(',')
+      });
+      
+      // Connect the server to this transport
+      await server.connect(transport);
+      
+      // Handle connection close
+      req.on('close', () => {
+        transport.close();
+      });
+      
+      return;
+    }
+    
+    // Handle POST requests to SSE endpoint (for sending messages back)
+    if (req.url === '/sse' && req.method === 'POST') {
+      // This will be handled by the SSE transport
+      // Just pass through with CORS headers
+      res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-ID');
+      return;
+    }
+    
+    // 404 for other paths
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  });
+  
+  // Start the HTTP server
+  await new Promise<void>((resolve, reject) => {
+    httpServer.listen(port, host, () => {
+      console.error(`Mindbody MCP Server v2.0 (SSE) listening on ${host}:${port}`);
+      console.error(`Health check: http${config.sslCert ? 's' : ''}://${host}:${port}/health`);
+      console.error(`SSE endpoint: http${config.sslCert ? 's' : ''}://${host}:${port}/sse`);
+      resolve();
+    });
+    httpServer.on('error', reject);
+  });
+  
+  // Graceful shutdown handling
+  process.on('SIGINT', async () => {
+    console.error('\nShutting down SSE server gracefully...');
+    await server.close();
+    httpServer.close(() => {
+      console.error('Server closed');
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGTERM', async () => {
+    console.error('\nShutting down SSE server gracefully...');
+    await server.close();
+    httpServer.close(() => {
+      console.error('Server closed');
+      process.exit(0);
+    });
+  });
+}
+
+// Start STDIO server
+async function startStdioServer() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('Mindbody MCP Server v2.0 started - Complete yoga studio management');
+  console.error('Mindbody MCP Server v2.0 started (STDIO) - Complete yoga studio management');
+}
+
+// Main entry point
+async function main() {
+  const config = parseArgs();
+  
+  console.error('Starting Mindbody MCP Server v2.0');
+  console.error(`Transport: ${config.transport.toUpperCase()}`);
+  
+  if (config.transport === 'sse') {
+    await startSSEServer(config);
+  } else {
+    await startStdioServer();
+  }
 }
 
 main().catch((error) => {

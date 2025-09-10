@@ -17,6 +17,7 @@ A comprehensive Model Context Protocol (MCP) server that provides AI assistants 
 - **Multi-Location Support** - Manage multiple studio locations seamlessly
 - **High Performance** - Built on Bun runtime with intelligent caching
 - **Type-Safe** - Full TypeScript support with comprehensive types
+- **Dual Transport Support** - STDIO for local development, SSE for production deployment
 
 ## 🚀 Quick Start
 
@@ -239,11 +240,60 @@ MindbodyMCP/
 └── CLAUDE.md             # Detailed documentation
 ```
 
+## 🌐 SSE Deployment (Production)
+
+The server supports SSE (Server-Sent Events) transport for production deployment, enabling web-based clients and remote access.
+
+### Quick Start with SSE
+
+```bash
+# Start with SSE transport
+bun run start:sse
+
+# Or with environment variable
+MCP_TRANSPORT=sse bun start
+
+# With custom port
+bun run src/index.ts --transport sse --port 8080
+```
+
+### Docker Deployment
+
+```bash
+# Using Docker Compose
+docker-compose up -d
+
+# Or manually
+docker build -t mindbody-mcp .
+docker run -d -p 3000:3000 -e MCP_TRANSPORT=sse mindbody-mcp
+```
+
+### Production Configuration
+
+Configure via environment variables:
+- `MCP_TRANSPORT=sse` - Enable SSE transport
+- `MCP_PORT=3000` - Server port
+- `MCP_HOST=0.0.0.0` - Server host
+- `MCP_CORS_ORIGIN=https://yourdomain.com` - CORS configuration
+- `MCP_SSL_CERT=/path/to/cert.pem` - SSL certificate (optional)
+- `MCP_SSL_KEY=/path/to/key.pem` - SSL private key (optional)
+
+### Endpoints
+
+- `/health` - Health check endpoint
+- `/info` - Server information
+- `/sse` - SSE event stream for MCP communication
+
+For detailed deployment instructions, see [SSE Deployment Guide](docs/SSE_DEPLOYMENT.md).
+
 ## 🧪 Testing
 
 ```bash
 # Run all tests
 bun test
+
+# Test SSE connection
+bun run test:sse
 
 # Test specific tool
 bun run test:tool

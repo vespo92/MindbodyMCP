@@ -1,0 +1,88 @@
+{
+  "name": "mindbody-mcp-sse",
+  "description": "Mindbody MCP Server with SSE Transport",
+  "version": "2.0.0",
+  "transport": {
+    "type": "sse",
+    "config": {
+      "endpoint": "/sse",
+      "port": 3000,
+      "host": "0.0.0.0",
+      "cors": {
+        "enabled": true,
+        "origin": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allowedHeaders": ["Content-Type", "Authorization", "X-Request-ID"],
+        "credentials": true,
+        "maxAge": 86400
+      },
+      "keepAlive": {
+        "enabled": true,
+        "interval": 30000,
+        "timeout": 60000
+      },
+      "reconnect": {
+        "maxRetries": 5,
+        "retryDelay": 1000,
+        "maxRetryDelay": 30000,
+        "backoffMultiplier": 2
+      },
+      "compression": {
+        "enabled": true,
+        "level": 6
+      },
+      "rateLimit": {
+        "enabled": true,
+        "windowMs": 60000,
+        "maxRequests": 100,
+        "message": "Too many requests, please try again later"
+      }
+    }
+  },
+  "ssl": {
+    "enabled": false,
+    "cert": "/path/to/cert.pem",
+    "key": "/path/to/key.pem",
+    "ca": "/path/to/ca.pem",
+    "rejectUnauthorized": true
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "timestamp": true,
+    "colorize": false
+  },
+  "monitoring": {
+    "healthCheck": {
+      "enabled": true,
+      "path": "/health",
+      "interval": 30000
+    },
+    "metrics": {
+      "enabled": true,
+      "path": "/metrics",
+      "collectDefault": true
+    }
+  },
+  "deployment": {
+    "environment": "production",
+    "replicas": 2,
+    "resources": {
+      "limits": {
+        "cpu": "1000m",
+        "memory": "512Mi"
+      },
+      "requests": {
+        "cpu": "500m",
+        "memory": "256Mi"
+      }
+    },
+    "autoscaling": {
+      "enabled": true,
+      "minReplicas": 1,
+      "maxReplicas": 5,
+      "targetCPUUtilization": 70,
+      "targetMemoryUtilization": 80
+    }
+  }
+}

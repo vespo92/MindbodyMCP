@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  mindbody-mcp-sse:
+    build: .
+    container_name: mindbody-mcp-sse
+    ports:
+      - "${MCP_PORT:-3000}:3000"
+    environment:
+      # MCP Server Configuration
+      MCP_TRANSPORT: sse
+      MCP_PORT: 3000
+      MCP_HOST: 0.0.0.0
+      MCP_SERVER_NAME: ${MCP_SERVER_NAME:-mindbody-mcp}
+      MCP_SERVER_VERSION: ${MCP_SERVER_VERSION:-2.0.0}
+      MCP_CORS_ORIGIN: ${MCP_CORS_ORIGIN:-*}
+      
+      # Mindbody API Configuration
+      MINDBODY_API_KEY: ${MINDBODY_API_KEY}
+      MINDBODY_SITE_ID: ${MINDBODY_SITE_ID}
+      MINDBODY_SOURCE_NAME: ${MINDBODY_SOURCE_NAME}
+      MINDBODY_SOURCE_PASSWORD: ${MINDBODY_SOURCE_PASSWORD}
+      MINDBODY_API_URL: ${MINDBODY_API_URL:-https://api.mindbodyonline.com/public/v6}
+      
+      # Cache Configuration
+      CACHE_TTL_MINUTES: ${CACHE_TTL_MINUTES:-5}
+      
+      # SSL Configuration (for production)
+      MCP_SSL_CERT: ${MCP_SSL_CERT:-}
+      MCP_SSL_KEY: ${MCP_SSL_KEY:-}
+    
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
