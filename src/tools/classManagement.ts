@@ -61,12 +61,12 @@ export async function getClassesTool(
   // Process and format results
   const formattedClasses = cached.Classes.map((cls) => ({
     id: cls.Id,
-    name: cls.ClassDescription.Name,
-    description: cls.ClassDescription.Description || '',
-    instructor: cls.Staff.Name,
+    name: cls.ClassDescription?.Name || '',
+    description: cls.ClassDescription?.Description || '',
+    instructor: cls.Staff?.Name || `${cls.Staff?.FirstName || ''} ${cls.Staff?.LastName || ''}`.trim() || '',
     startTime: cls.StartDateTime,
     endTime: cls.EndDateTime,
-    location: cls.Location.Name,
+    location: cls.Location?.Name || '',
     spotsAvailable: cls.MaxCapacity - cls.TotalBooked,
     totalSpots: cls.MaxCapacity,
     isWaitlistAvailable: cls.IsWaitlistAvailable,
@@ -279,8 +279,8 @@ export async function substituteClassTeacherTool(
       message: 'Successfully substituted teacher',
       updatedClass: response.Class ? {
         id: response.Class.Id,
-        name: response.Class.ClassDescription.Name,
-        originalTeacher: response.Class.Staff.Name,
+        name: response.Class.ClassDescription?.Name || '',
+        originalTeacher: response.Class.Staff?.Name || `${response.Class.Staff?.FirstName || ''} ${response.Class.Staff?.LastName || ''}`.trim() || '',
         substituteTeacher: response.Class.SubstituteTeacher?.Name || substituteTeacherName || 'Unknown',
         startTime: response.Class.StartDateTime,
       } : undefined,
@@ -326,9 +326,9 @@ export async function getClassSchedulesTool(
 
   const schedules = response.ClassSchedules.map((schedule: any) => ({
     id: schedule.Id,
-    className: schedule.ClassDescription.Name,
-    instructor: schedule.Staff.Name,
-    location: schedule.Location.Name,
+    className: schedule.ClassDescription?.Name || '',
+    instructor: schedule.Staff?.Name || `${schedule.Staff?.FirstName || ''} ${schedule.Staff?.LastName || ''}`.trim() || '',
+    location: schedule.Location?.Name || '',
     dayOfWeek: schedule.DayOfWeek,
     startTime: schedule.StartTime,
     endTime: schedule.EndTime,

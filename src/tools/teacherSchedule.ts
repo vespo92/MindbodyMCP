@@ -87,11 +87,11 @@ export async function getTeacherScheduleTool(
   // Process and format the results
   const formattedClasses = classes.Classes.map((cls) => ({
     id: cls.Id,
-    name: cls.ClassDescription.Name,
+    name: cls.ClassDescription?.Name || '',
     startTime: cls.StartDateTime,
     endTime: cls.EndDateTime,
     duration: getDurationInMinutes(cls.StartDateTime, cls.EndDateTime),
-    location: cls.Location.Name,
+    location: cls.Location?.Name || '',
     isSubstitute: cls.IsSubstitute,
     isCanceled: cls.IsCanceled,
     spotsAvailable: cls.MaxCapacity - cls.TotalBooked,

@@ -50,7 +50,7 @@ export async function getStaffAppointmentsTool(
     id: apt.Id,
     status: apt.Status,
     staffId: apt.StaffId || apt.Staff?.Id,
-    staffName: apt.Staff?.DisplayName || apt.Staff?.Name || `${apt.Staff?.FirstName} ${apt.Staff?.LastName}`,
+    staffName: apt.Staff?.Name || `${apt.Staff?.FirstName} ${apt.Staff?.LastName}`,
     sessionTypeId: apt.SessionTypeId || apt.SessionType?.Id,
     sessionTypeName: apt.SessionType?.Name || '',
     locationId: apt.LocationId || apt.Location?.Id,
@@ -126,9 +126,9 @@ export async function addAppointmentTool(
         startDateTime: response.Appointment.StartDateTime,
         endDateTime: response.Appointment.EndDateTime,
         duration: response.Appointment.Duration,
-        staffName: response.Appointment.Staff.Name,
-        sessionTypeName: response.Appointment.SessionType.Name,
-        locationName: response.Appointment.Location.Name,
+        staffName: response.Appointment.Staff?.Name || `${response.Appointment.Staff?.FirstName || ''} ${response.Appointment.Staff?.LastName || ''}`.trim() || '',
+        sessionTypeName: response.Appointment.SessionType?.Name || '',
+        locationName: response.Appointment.Location?.Name || '',
       },
       message: response.Message || 'Appointment booked successfully',
     };
@@ -182,7 +182,7 @@ export async function updateAppointmentTool(
         status: response.Appointment.Status,
         startDateTime: response.Appointment.StartDateTime,
         endDateTime: response.Appointment.EndDateTime,
-        staffName: response.Appointment.Staff.Name,
+        staffName: response.Appointment.Staff?.Name || `${response.Appointment.Staff?.FirstName || ''} ${response.Appointment.Staff?.LastName || ''}`.trim() || '',
       },
       message: 'Appointment updated successfully',
     };
@@ -232,12 +232,12 @@ export async function getBookableItemsTool(
 
   const bookableItems = response.BookableItems.map((item: any) => ({
     scheduledItemId: item.ScheduledItemId,
-    staffId: item.Staff.Id,
-    staffName: item.Staff.Name,
-    sessionTypeId: item.SessionType.Id,
-    sessionTypeName: item.SessionType.Name,
-    locationId: item.Location.Id,
-    locationName: item.Location.Name,
+    staffId: item.StaffId || item.Staff?.Id,
+    staffName: item.Staff?.Name || `${item.Staff?.FirstName || ''} ${item.Staff?.LastName || ''}`.trim() || '',
+    sessionTypeId: item.SessionTypeId || item.SessionType?.Id,
+    sessionTypeName: item.SessionType?.Name || '',
+    locationId: item.LocationId || item.Location?.Id,
+    locationName: item.Location?.Name || '',
     startDateTime: item.StartDateTime,
     endDateTime: item.EndDateTime,
     isAvailable: item.IsAvailable,
@@ -286,8 +286,8 @@ export async function getActiveSessionTimesTool(
   const activeTimes = response.ActiveSessionTimes.map((time: any) => {
     const result: any = {
       id: time.Id,
-      sessionTypeId: time.SessionType.Id,
-      sessionTypeName: time.SessionType.Name,
+      sessionTypeId: time.SessionTypeId || time.SessionType?.Id,
+      sessionTypeName: time.SessionType?.Name || '',
       scheduleType: time.ScheduleType,
     };
 
