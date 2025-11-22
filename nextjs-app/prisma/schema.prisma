@@ -1,0 +1,884 @@
+// Prisma Schema for Mindbody Integration
+// This schema mirrors the Mindbody API data structures with proper foreign key relationships
+// and is designed for local caching/sync and enhanced querying capabilities
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// SITE & LOCATION MANAGEMENT
+// ============================================================================
+
+model Site {
+  id                  Int       @id
+  name                String
+  description         String?
+  logoUrl             String?
+  pageColor1          String?
+  pageColor2          String?
+  pageColor3          String?
+  pageColor4          String?
+  acceptsVisa         Boolean   @default(true)
+  acceptsMastercard   Boolean   @default(true)
+  acceptsAmex         Boolean   @default(true)
+  acceptsDiscover     Boolean   @default(true)
+  contactEmail        String?
+  smsPackageEnabled   Boolean   @default(false)
+  allowsDirectPay     Boolean   @default(false)
+  virtualSessions     Boolean   @default(false)
+  enableTreatments    Boolean   @default(false)
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  locations           Location[]
+  staff               Staff[]
+  clients             Client[]
+  programs            Program[]
+  classDescriptions   ClassDescription[]
+  sessionTypes        SessionType[]
+  contracts           Contract[]
+  services            Service[]
+  packages            Package[]
+  products            Product[]
+}
+
+model Location {
+  id                  Int       @id
+  siteId              Int
+  name                String
+  description         String?
+  address             String?
+  address2            String?
+  city                String?
+  state               String?
+  postalCode          String?
+  country             String?
+  phone               String?
+  latitude            Float?
+  longitude           Float?
+  tax1                Float?
+  tax2                Float?
+  tax3                Float?
+  tax4                Float?
+  tax5                Float?
+  facilitySquareFeet  Int?
+  treatmentRooms      Int?
+  hasClasses          Boolean   @default(true)
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  site                Site      @relation(fields: [siteId], references: [id])
+  classes             Class[]
+  classSchedules      ClassSchedule[]
+  appointments        Appointment[]
+  enrollments         Enrollment[]
+  resources           Resource[]
+
+  @@index([siteId])
+}
+
+model Resource {
+  id                  Int       @id
+  locationId          Int
+  name                String
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  location            Location  @relation(fields: [locationId], references: [id])
+  appointmentResources AppointmentResource[]
+
+  @@index([locationId])
+}
+
+// ============================================================================
+// PROGRAM & SESSION TYPE MANAGEMENT
+// ============================================================================
+
+model Program {
+  id                  Int       @id
+  siteId              Int
+  name                String
+  scheduleType        String?   // 'All', 'Class', 'Enrollment', 'Appointment'
+  cancelOffset        Int?
+  contentFormats      String[]  @default([])
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  site                Site      @relation(fields: [siteId], references: [id])
+  sessionTypes        SessionType[]
+  classDescriptions   ClassDescription[]
+  enrollments         Enrollment[]
+  services            Service[]
+
+  @@index([siteId])
+}
+
+model SessionType {
+  id                  Int       @id
+  siteId              Int
+  programId           Int?
+  name                String
+  type                String?   // 'All', 'Class', 'Enrollment', 'Appointment'
+  defaultTimeLength   Int?      // in minutes
+  numDeducted         Int?
+  staffTimeLength     Int?
+  onlineDescription   String?
+  category            String?
+  categoryId          Int?
+  subcategory         String?
+  subcategoryId       Int?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  site                Site      @relation(fields: [siteId], references: [id])
+  program             Program?  @relation(fields: [programId], references: [id])
+  appointments        Appointment[]
+  classSchedules      ClassSchedule[]
+  bookableItems       BookableItem[]
+  activeSessionTimes  ActiveSessionTime[]
+
+  @@index([siteId])
+  @@index([programId])
+}
+
+// ============================================================================
+// STAFF MANAGEMENT
+// ============================================================================
+
+model Staff {
+  id                  Int       @id
+  siteId              Int
+  firstName           String
+  lastName            String
+  name                String    // Full name for convenience
+  email               String?
+  mobilePhone         String?
+  homePhone           String?
+  address             String?
+  city                String?
+  state               String?
+  postalCode          String?
+  country             String?
+  imageUrl            String?
+  bio                 String?   @db.Text
+  isMale              Boolean?
+  sortOrder           Int?
+  appointmentTrn      Boolean   @default(false)
+  alwaysAllowDoubleBooking Boolean @default(false)
+  independentContractor Boolean @default(false)
+  employmentStart     DateTime?
+  employmentEnd       DateTime?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  site                Site      @relation(fields: [siteId], references: [id])
+  classes             Class[]
+  classSchedules      ClassSchedule[]
+  appointments        Appointment[]
+  enrollments         Enrollment[]
+  bookableItems       BookableItem[]
+
+  @@index([siteId])
+  @@index([email])
+}
+
+// ============================================================================
+// CLIENT MANAGEMENT
+// ============================================================================
+
+model Client {
+  id                  String    @id // Mindbody client IDs are strings
+  siteId              Int
+  firstName           String
+  lastName            String
+  email               String?
+  mobilePhone         String?
+  homePhone           String?
+  workPhone           String?
+  birthDate           DateTime?
+  addressLine1        String?
+  addressLine2        String?
+  city                String?
+  state               String?
+  postalCode          String?
+  country             String?
+  gender              String?
+  isProspect          Boolean   @default(false)
+  isCompany           Boolean   @default(false)
+  status              String?
+  active              Boolean   @default(true)
+  sendAccountEmails   Boolean   @default(true)
+  sendAccountTexts    Boolean   @default(true)
+  sendPromotionalEmails Boolean @default(true)
+  sendPromotionalTexts Boolean  @default(true)
+  sendScheduleEmails  Boolean   @default(true)
+  sendScheduleTexts   Boolean   @default(true)
+  referredBy          String?
+  photoUrl            String?
+  notes               String?   @db.Text
+  yellowAlert         String?
+  redAlert            String?
+
+  // Emergency Contact
+  emergencyContactName         String?
+  emergencyContactPhone        String?
+  emergencyContactRelationship String?
+
+  // Liability
+  liabilityReleased   Boolean   @default(false)
+  liabilityAgreementDate DateTime?
+
+  // Account Balance
+  accountBalance      Float     @default(0)
+
+  // Timestamps
+  creationDate        DateTime?
+  firstAppointmentDate DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  site                Site      @relation(fields: [siteId], references: [id])
+  classBookings       ClassBooking[]
+  appointments        Appointment[]
+  visits              ClientVisit[]
+  memberships         ClientMembership[]
+  contracts           ClientContract[]
+  enrollmentBookings  EnrollmentBooking[]
+  purchases           Purchase[]
+
+  @@index([siteId])
+  @@index([email])
+  @@index([lastName, firstName])
+}
+
+// ============================================================================
+// CLASS MANAGEMENT
+// ============================================================================
+
+model ClassDescription {
+  id                  Int       @id
+  siteId              Int
+  programId           Int?
+  name                String
+  description         String?   @db.Text
+  prerequisite        String?
+  notes               String?   @db.Text
+  imageUrl            String?
+  active              Boolean   @default(true)
+  lastUpdated         DateTime?
+  level               Json?     // { Id, Name, Description }
+  category            String?
+  categoryId          Int?
+  subcategory         String?
+  subcategoryId       Int?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  site                Site      @relation(fields: [siteId], references: [id])
+  program             Program?  @relation(fields: [programId], references: [id])
+  classes             Class[]
+  classSchedules      ClassSchedule[]
+
+  @@index([siteId])
+  @@index([programId])
+}
+
+model ClassSchedule {
+  id                  Int       @id
+  locationId          Int
+  classDescriptionId  Int
+  staffId             Int?
+  sessionTypeId       Int?
+  startTime           DateTime
+  endTime             DateTime
+  startDate           DateTime
+  endDate             DateTime?
+  daysOfWeek          String[]  // ['Sunday', 'Monday', etc.]
+  maxCapacity         Int?
+  webCapacity         Int?
+  isActive            Boolean   @default(true)
+  isAvailableOnline   Boolean   @default(true)
+  assistantStaffId    Int?
+  assistantStaffId2   Int?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  location            Location  @relation(fields: [locationId], references: [id])
+  classDescription    ClassDescription @relation(fields: [classDescriptionId], references: [id])
+  staff               Staff?    @relation(fields: [staffId], references: [id])
+  sessionType         SessionType? @relation(fields: [sessionTypeId], references: [id])
+  classes             Class[]
+
+  @@index([locationId])
+  @@index([classDescriptionId])
+  @@index([staffId])
+}
+
+model Class {
+  id                  Int       @id
+  classScheduleId     Int
+  locationId          Int
+  classDescriptionId  Int
+  staffId             Int
+  startDateTime       DateTime
+  endDateTime         DateTime
+  isCanceled          Boolean   @default(false)
+  isWaitlistAvailable Boolean   @default(true)
+  isAvailable         Boolean   @default(true)
+  isSubstitute        Boolean   @default(false)
+  isEnrolled          Boolean   @default(false)
+  hideCancel          Boolean   @default(false)
+  maxCapacity         Int       @default(0)
+  totalBooked         Int       @default(0)
+  webCapacity         Int       @default(0)
+  totalBookedWaitlist Int       @default(0)
+  virtualStreamLink   String?
+  lastModifiedDateTime DateTime?
+  bookingWindowStartDateTime DateTime?
+  bookingWindowEndDateTime DateTime?
+  bookingWindowDailyStartTime String?
+  bookingWindowDailyEndTime String?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  classSchedule       ClassSchedule @relation(fields: [classScheduleId], references: [id])
+  location            Location  @relation(fields: [locationId], references: [id])
+  classDescription    ClassDescription @relation(fields: [classDescriptionId], references: [id])
+  staff               Staff     @relation(fields: [staffId], references: [id])
+  bookings            ClassBooking[]
+  waitlistEntries     WaitlistEntry[]
+
+  @@index([classScheduleId])
+  @@index([locationId])
+  @@index([classDescriptionId])
+  @@index([staffId])
+  @@index([startDateTime])
+}
+
+model ClassBooking {
+  id                  Int       @id @default(autoincrement())
+  clientId            String
+  classId             Int
+  signedIn            Boolean   @default(false)
+  makeUp              Boolean   @default(false)
+  webSignup           Boolean   @default(false)
+  action              String?   // 'Added', 'Removed', etc.
+  serviceId           Int?
+  serviceName         String?
+  productId           Int?
+  visitRefNo          Int?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  client              Client    @relation(fields: [clientId], references: [id])
+  class               Class     @relation(fields: [classId], references: [id])
+
+  @@unique([clientId, classId])
+  @@index([clientId])
+  @@index([classId])
+}
+
+model WaitlistEntry {
+  id                  Int       @id @default(autoincrement())
+  classId             Int
+  clientId            String
+  requestDateTime     DateTime
+  visitRefNo          Int?
+  webSignup           Boolean   @default(false)
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  class               Class     @relation(fields: [classId], references: [id])
+
+  @@index([classId])
+}
+
+// ============================================================================
+// APPOINTMENT MANAGEMENT
+// ============================================================================
+
+model Appointment {
+  id                  Int       @id
+  clientId            String?
+  staffId             Int
+  locationId          Int
+  sessionTypeId       Int
+  status              String    // 'Booked', 'Completed', 'Confirmed', 'Arrived', 'NoShow'
+  startDateTime       DateTime
+  endDateTime         DateTime
+  duration            Int       // in minutes
+  notes               String?   @db.Text
+  staffRequested      Boolean   @default(false)
+  firstAppointment    Boolean   @default(false)
+  isConfirmed         Boolean   @default(false)
+  providerId          String?
+  genderPreference    String?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  client              Client?   @relation(fields: [clientId], references: [id])
+  staff               Staff     @relation(fields: [staffId], references: [id])
+  location            Location  @relation(fields: [locationId], references: [id])
+  sessionType         SessionType @relation(fields: [sessionTypeId], references: [id])
+  resources           AppointmentResource[]
+
+  @@index([clientId])
+  @@index([staffId])
+  @@index([locationId])
+  @@index([startDateTime])
+}
+
+model AppointmentResource {
+  id                  Int       @id @default(autoincrement())
+  appointmentId       Int
+  resourceId          Int
+
+  // Relations
+  appointment         Appointment @relation(fields: [appointmentId], references: [id])
+  resource            Resource  @relation(fields: [resourceId], references: [id])
+
+  @@unique([appointmentId, resourceId])
+}
+
+model BookableItem {
+  id                  Int       @id @default(autoincrement())
+  staffId             Int
+  sessionTypeId       Int
+  locationId          Int?
+  startDateTime       DateTime
+  endDateTime         DateTime
+  isAvailable         Boolean   @default(true)
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  staff               Staff     @relation(fields: [staffId], references: [id])
+  sessionType         SessionType @relation(fields: [sessionTypeId], references: [id])
+
+  @@index([staffId])
+  @@index([startDateTime])
+}
+
+model ActiveSessionTime {
+  id                  Int       @id @default(autoincrement())
+  sessionTypeId       Int
+  scheduleType        String    // 'Class', 'Enrollment', 'Appointment'
+  mondayStart         String?
+  mondayEnd           String?
+  mondayBookable      Boolean   @default(true)
+  tuesdayStart        String?
+  tuesdayEnd          String?
+  tuesdayBookable     Boolean   @default(true)
+  wednesdayStart      String?
+  wednesdayEnd        String?
+  wednesdayBookable   Boolean   @default(true)
+  thursdayStart       String?
+  thursdayEnd         String?
+  thursdayBookable    Boolean   @default(true)
+  fridayStart         String?
+  fridayEnd           String?
+  fridayBookable      Boolean   @default(true)
+  saturdayStart       String?
+  saturdayEnd         String?
+  saturdayBookable    Boolean   @default(true)
+  sundayStart         String?
+  sundayEnd           String?
+  sundayBookable      Boolean   @default(true)
+
+  // Relations
+  sessionType         SessionType @relation(fields: [sessionTypeId], references: [id])
+
+  @@index([sessionTypeId])
+}
+
+// ============================================================================
+// ENROLLMENT MANAGEMENT (Courses, Workshops, Series)
+// ============================================================================
+
+model Enrollment {
+  id                  Int       @id
+  locationId          Int
+  classDescriptionId  Int?
+  staffId             Int?
+  programId           Int?
+  name                String
+  description         String?   @db.Text
+  scheduleType        String?
+  startDate           DateTime
+  endDate             DateTime?
+  startTime           String?
+  endTime             String?
+  dayOfWeek           String?
+  maxCapacity         Int?
+  webCapacity         Int?
+  isAvailable         Boolean   @default(true)
+  isOnlineAvailable   Boolean   @default(true)
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  location            Location  @relation(fields: [locationId], references: [id])
+  staff               Staff?    @relation(fields: [staffId], references: [id])
+  program             Program?  @relation(fields: [programId], references: [id])
+  bookings            EnrollmentBooking[]
+
+  @@index([locationId])
+  @@index([staffId])
+  @@index([startDate])
+}
+
+model EnrollmentBooking {
+  id                  Int       @id @default(autoincrement())
+  clientId            String
+  enrollmentId        Int
+  enrollmentDate      DateTime
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  client              Client    @relation(fields: [clientId], references: [id])
+  enrollment          Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  @@unique([clientId, enrollmentId])
+  @@index([clientId])
+  @@index([enrollmentId])
+}
+
+// ============================================================================
+// SALES & COMMERCE
+// ============================================================================
+
+model Contract {
+  id                  Int       @id
+  siteId              Int
+  name                String
+  description         String?   @db.Text
+  assignsMembershipId Int?
+  assignsMembershipName String?
+  soldOnline          Boolean   @default(false)
+  contractType        String?
+  agreementTerms      String?   @db.Text
+  autopayFrequency    String?
+  autopayDuration     Int?
+  autopayPaymentAmount Float?
+  introOfferId        String?
+  introOfferName      String?
+  introOfferPrice     Float?
+  locationId          Int?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  site                Site      @relation(fields: [siteId], references: [id])
+  clientContracts     ClientContract[]
+
+  @@index([siteId])
+}
+
+model ClientContract {
+  id                  Int       @id
+  clientId            String
+  contractId          Int
+  contractName        String?
+  soldDate            DateTime
+  startDate           DateTime
+  endDate             DateTime?
+  autopayStatus       String?
+  paymentAmount       Float?
+  frequency           Int?
+  remainingPayments   Int?
+  balance             Float?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  client              Client    @relation(fields: [clientId], references: [id])
+  contract            Contract  @relation(fields: [contractId], references: [id])
+
+  @@index([clientId])
+  @@index([contractId])
+}
+
+model Service {
+  id                  Int       @id
+  siteId              Int
+  programId           Int?
+  sessionTypeId       Int?
+  name                String
+  price               Float
+  onlinePrice         Float?
+  taxIncluded         Boolean   @default(false)
+  taxRate             Float?
+  count               Int?
+  expirationUnit      String?   // 'Days', 'Weeks', 'Months'
+  expirationLength    Int?
+  membershipId        Int?
+  priority            Int?
+  prerequisite        String?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  site                Site      @relation(fields: [siteId], references: [id])
+  program             Program?  @relation(fields: [programId], references: [id])
+
+  @@index([siteId])
+  @@index([programId])
+}
+
+model Package {
+  id                  Int       @id
+  siteId              Int
+  name                String
+  classCount          Int
+  price               Float
+  onlinePrice         Float?
+  taxIncluded         Boolean   @default(false)
+  active              Boolean   @default(true)
+  productId           Int?
+  sellOnline          Boolean   @default(false)
+  services            Json?     // Array of service references
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  site                Site      @relation(fields: [siteId], references: [id])
+
+  @@index([siteId])
+}
+
+model Product {
+  id                  String    @id
+  siteId              Int
+  name                String
+  price               Float
+  onlinePrice         Float?
+  description         String?   @db.Text
+  category            String?
+  subCategory         String?
+  color               String?
+  size                String?
+  taxIncluded         Boolean   @default(false)
+  taxRate             Float?
+  sellOnline          Boolean   @default(false)
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  site                Site      @relation(fields: [siteId], references: [id])
+  purchaseItems       PurchaseItem[]
+
+  @@index([siteId])
+  @@index([category])
+}
+
+model ClientMembership {
+  id                  Int       @id @default(autoincrement())
+  clientId            String
+  membershipId        Int?
+  name                String
+  remaining           Int?
+  activeDate          DateTime
+  expirationDate      DateTime?
+  paymentDate         DateTime?
+  program             String?
+  iconCode            Int?
+  action              String?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  syncedAt            DateTime?
+
+  // Relations
+  client              Client    @relation(fields: [clientId], references: [id])
+
+  @@index([clientId])
+}
+
+model ClientVisit {
+  id                  Int       @id @default(autoincrement())
+  clientId            String
+  classId             Int?
+  className           String?
+  startDateTime       DateTime
+  endDateTime         DateTime?
+  locationName        String?
+  instructorName      String?
+  signedIn            Boolean   @default(false)
+  webSignup           Boolean   @default(false)
+  lateCancelled       Boolean   @default(false)
+  serviceId           Int?
+  serviceName         String?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  syncedAt            DateTime?
+
+  // Relations
+  client              Client    @relation(fields: [clientId], references: [id])
+
+  @@index([clientId])
+  @@index([startDateTime])
+}
+
+model Purchase {
+  id                  Int       @id @default(autoincrement())
+  clientId            String
+  locationId          Int?
+  saleDateTime        DateTime
+  subTotal            Float
+  taxTotal            Float
+  discountTotal       Float
+  grandTotal          Float
+  promotionCode       String?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  client              Client    @relation(fields: [clientId], references: [id])
+  items               PurchaseItem[]
+  payments            PurchasePayment[]
+
+  @@index([clientId])
+  @@index([saleDateTime])
+}
+
+model PurchaseItem {
+  id                  Int       @id @default(autoincrement())
+  purchaseId          Int
+  productId           String?
+  serviceId           Int?
+  packageId           Int?
+  name                String
+  price               Float
+  quantity            Int
+  discountAmount      Float     @default(0)
+  taxAmount           Float     @default(0)
+  total               Float
+
+  // Relations
+  purchase            Purchase  @relation(fields: [purchaseId], references: [id])
+  product             Product?  @relation(fields: [productId], references: [id])
+
+  @@index([purchaseId])
+}
+
+model PurchasePayment {
+  id                  Int       @id @default(autoincrement())
+  purchaseId          Int
+  paymentType         String    // 'Cash', 'Check', 'CreditCard', 'StoredCard', etc.
+  amount              Float
+  notes               String?
+  lastFour            String?
+
+  // Relations
+  purchase            Purchase  @relation(fields: [purchaseId], references: [id])
+
+  @@index([purchaseId])
+}
+
+// ============================================================================
+// SYNC MANAGEMENT
+// ============================================================================
+
+model SyncLog {
+  id                  Int       @id @default(autoincrement())
+  entityType          String    // 'Site', 'Location', 'Staff', 'Client', 'Class', etc.
+  entityId            String?
+  action              String    // 'create', 'update', 'delete', 'sync'
+  status              String    // 'pending', 'success', 'failed'
+  errorMessage        String?   @db.Text
+  metadata            Json?
+
+  // Timestamps
+  startedAt           DateTime  @default(now())
+  completedAt         DateTime?
+
+  @@index([entityType, status])
+  @@index([startedAt])
+}
+
+model SyncState {
+  id                  Int       @id @default(autoincrement())
+  entityType          String    @unique
+  lastSyncedAt        DateTime?
+  lastSuccessfulSyncAt DateTime?
+  syncCursor          String?   // For pagination/incremental sync
+  totalRecords        Int       @default(0)
+
+  @@index([entityType])
+}
