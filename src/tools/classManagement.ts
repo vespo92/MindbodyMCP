@@ -342,3 +342,78 @@ export async function getClassSchedulesTool(
     totalSchedules: schedules.length,
   };
 }
+
+// Get visits for a specific class (attendance/booking history)
+export async function getClassVisitsTool(
+  classId: number,
+  lastModifiedDate?: string
+): Promise<{
+  visits: Array<{
+    id: number;
+    classId: number;
+    clientId: string;
+    clientFirstName: string;
+    clientLastName: string;
+    clientEmail?: string;
+    clientPhone?: string;
+    startDateTime: string;
+    endDateTime: string;
+    signedIn: boolean;
+    webSignup: boolean;
+    makeUp: boolean;
+    lateCancel: boolean;
+    serviceName?: string;
+    serviceId?: number;
+    locationId?: number;
+    locationName?: string;
+  }>;
+  totalVisits: number;
+  summary: {
+    totalSignedIn: number;
+    totalNotSignedIn: number;
+    totalLateCancels: number;
+    totalWebSignups: number;
+  };
+}> {
+  const response = await mindbodyClient.get<any>('/class/classvisits', {
+    params: {
+      ClassId: classId,
+      LastModifiedDate: lastModifiedDate,
+      Limit: 200,
+    },
+  });
+
+  const visits = (response.Visits || []).map((visit: any) => ({
+    id: visit.Id,
+    classId: visit.ClassId || classId,
+    clientId: visit.ClientId,
+    clientFirstName: visit.Client?.FirstName || visit.FirstName || '',
+    clientLastName: visit.Client?.LastName || visit.LastName || '',
+    clientEmail: visit.Client?.Email || visit.Email,
+    clientPhone: visit.Client?.MobilePhone || visit.Client?.HomePhone || visit.Phone,
+    startDateTime: visit.StartDateTime,
+    endDateTime: visit.EndDateTime,
+    signedIn: visit.SignedIn || false,
+    webSignup: visit.WebSignup || false,
+    makeUp: visit.MakeUp || false,
+    lateCancel: visit.LateCancelled || false,
+    serviceName: visit.Service?.Name || visit.ServiceName,
+    serviceId: visit.Service?.Id || visit.ServiceId,
+    locationId: visit.Location?.Id || visit.LocationId,
+    locationName: visit.Location?.Name || visit.LocationName,
+  }));
+
+  // Generate summary
+  const summary = {
+    totalSignedIn: visits.filter((v: any) => v.signedIn).length,
+    totalNotSignedIn: visits.filter((v: any) => !v.signedIn && !v.lateCancel).length,
+    totalLateCancels: visits.filter((v: any) => v.lateCancel).length,
+    totalWebSignups: visits.filter((v: any) => v.webSignup).length,
+  };
+
+  return {
+    visits,
+    totalVisits: visits.length,
+    summary,
+  };
+}

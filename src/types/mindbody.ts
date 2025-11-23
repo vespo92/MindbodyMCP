@@ -202,3 +202,40 @@ export interface GetEnrollmentsRequest {
   EndDate?: string;
   Limit?: number;
 }
+
+// Class Visits types
+export interface GetClassVisitsRequest {
+  ClassId: number;
+  LastModifiedDate?: string;
+  Limit?: number;
+  Offset?: number;
+}
+
+export interface ClassVisit {
+  Id: number;
+  ClassId: number;
+  ClientId: string;
+  Client?: {
+    Id: string;
+    FirstName: string;
+    LastName: string;
+    Email?: string;
+    MobilePhone?: string;
+    HomePhone?: string;
+  };
+  StartDateTime: string;
+  EndDateTime: string;
+  SignedIn: boolean;
+  WebSignup: boolean;
+  MakeUp: boolean;
+  LateCancelled: boolean;
+  Service?: {
+    Id: number;
+    Name: string;
+  };
+  Location?: Location;
+}
+
+export interface GetClassVisitsResponse extends PaginationResponse {
+  Visits: ClassVisit[];
+}

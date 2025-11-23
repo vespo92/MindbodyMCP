@@ -26,6 +26,7 @@ import {
   getWaitlistEntriesTool,
   substituteClassTeacherTool,
   getClassSchedulesTool,
+  getClassVisitsTool,
 } from './tools/classManagement';
 import {
   getClientsTool,
@@ -216,7 +217,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['classId', 'originalTeacherId', 'substituteTeacherId'],
         },
       },
-      
+      {
+        name: 'getClassVisits',
+        description: 'Get client visits/attendance for a specific class. Returns all clients who booked or attended the class, including sign-in status, late cancellations, and service information.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            classId: { type: 'number', description: 'The ID of the class to get visits for' },
+            lastModifiedDate: { type: 'string', description: 'Only return visits modified after this date (YYYY-MM-DD format)' },
+          },
+          required: ['classId'],
+        },
+      },
+
       // Client Management Tools
       {
         name: 'getClients',
@@ -744,7 +757,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           args.substituteTeacherName as string | undefined
         );
         return { content: [{ type: 'text', text: JSON.stringify(subResult, null, 2) }] };
-      
+
+      case 'getClassVisits':
+        const classVisitsResult = await getClassVisitsTool(
+          args.classId as number,
+          args.lastModifiedDate as string | undefined
+        );
+        return { content: [{ type: 'text', text: JSON.stringify(classVisitsResult, null, 2) }] };
+
       // Client Management Tools
       case 'getClients':
         const clientsResult = await getClientsTool(
