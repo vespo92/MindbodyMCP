@@ -1,4 +1,4 @@
-import { mindbodyClient } from '../api/client';
+import { mindbodyClient, type IMindbodyClient } from '../api/client';
 
 // Get available services (class packages, memberships)
 export async function getServicesTool(
@@ -6,7 +6,8 @@ export async function getServicesTool(
   sessionTypeIds?: number[],
   locationId?: number,
   classId?: number,
-  hideRelatedPrograms: boolean = false
+  hideRelatedPrograms: boolean = false,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   services: Array<{
     id: number;
@@ -26,7 +27,7 @@ export async function getServicesTool(
   }>;
   totalServices: number;
 }> {
-  const response = await mindbodyClient.get<any>('/sale/services', {
+  const response = await client.get<any>('/sale/services', {
     params: {
       ProgramIds: programIds,
       SessionTypeIds: sessionTypeIds,
@@ -63,7 +64,8 @@ export async function getServicesTool(
 // Get packages (class packages)
 export async function getPackagesTool(
   locationId?: number,
-  classScheduleId?: number
+  classScheduleId?: number,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   packages: Array<{
     id: number;
@@ -79,7 +81,7 @@ export async function getPackagesTool(
   }>;
   totalPackages: number;
 }> {
-  const response = await mindbodyClient.get<any>('/sale/packages', {
+  const response = await client.get<any>('/sale/packages', {
     params: {
       LocationId: locationId,
       ClassScheduleId: classScheduleId,
@@ -116,7 +118,8 @@ export async function getProductsTool(
   searchText?: string,
   categoryIds?: string[],
   subCategoryIds?: string[],
-  sellOnline?: boolean
+  sellOnline?: boolean,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   products: Array<{
     id: string;
@@ -134,7 +137,7 @@ export async function getProductsTool(
   }>;
   totalProducts: number;
 }> {
-  const response = await mindbodyClient.get<any>('/sale/products', {
+  const response = await client.get<any>('/sale/products', {
     params: {
       ProductIds: productIds,
       SearchText: searchText,
@@ -203,7 +206,8 @@ export async function checkoutShoppingCartTool(
   inStore: boolean = false,
   promotionCode?: string,
   sendEmail: boolean = true,
-  locationId?: number
+  locationId?: number,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   success: boolean;
   shoppingCart?: {
@@ -313,7 +317,7 @@ export async function checkoutShoppingCartTool(
       return basePayment;
     });
 
-    const response = await mindbodyClient.post<any>('/sale/checkoutshoppingcart', {
+    const response = await client.post<any>('/sale/checkoutshoppingcart', {
       ClientId: clientId,
       Items: cartItems,
       Payments: paymentMethods,
@@ -366,7 +370,8 @@ export async function purchaseContractTool(
   firstPaymentOccurs?: 'StartDate' | 'UponSale' | 'BillingDate',
   clientSignature?: string,
   promotionCode?: string,
-  locationId?: number
+  locationId?: number,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   success: boolean;
   clientContract?: {
@@ -382,7 +387,7 @@ export async function purchaseContractTool(
   message: string;
 }> {
   try {
-    const response = await mindbodyClient.post<any>('/sale/purchasecontract', {
+    const response = await client.post<any>('/sale/purchasecontract', {
       ClientId: clientId,
       ContractId: contractId,
       StartDate: startDate,
@@ -418,7 +423,8 @@ export async function purchaseContractTool(
 export async function getContractsTool(
   contractIds?: number[],
   soldOnline?: boolean,
-  locationId?: number
+  locationId?: number,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   contracts: Array<{
     id: number;
@@ -443,7 +449,7 @@ export async function getContractsTool(
   }>;
   totalContracts: number;
 }> {
-  const response = await mindbodyClient.get<any>('/sale/contracts', {
+  const response = await client.get<any>('/sale/contracts', {
     params: {
       ContractIds: contractIds,
       SoldOnline: soldOnline,

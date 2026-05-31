@@ -1,7 +1,13 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { mindbodyAuth } from './auth';
 
-class MindbodyApiClient {
+export interface IMindbodyClient {
+  request<T>(config: AxiosRequestConfig, retries?: number): Promise<T>;
+  get<T>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+}
+
+class MindbodyApiClient implements IMindbodyClient {
   private client: AxiosInstance;
   private readonly maxRetries = 3;
   private readonly retryDelay = 1000;

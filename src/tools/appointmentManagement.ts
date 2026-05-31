@@ -1,4 +1,4 @@
-import { mindbodyClient } from '../api/client';
+import { mindbodyClient, type IMindbodyClient } from '../api/client';
 
 // Get appointments
 export async function getStaffAppointmentsTool(
@@ -7,7 +7,8 @@ export async function getStaffAppointmentsTool(
   startDate?: string,
   endDate?: string,
   appointmentIds?: number[],
-  clientIds?: string[]
+  clientIds?: string[],
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   appointments: Array<{
     id: number;
@@ -34,7 +35,7 @@ export async function getStaffAppointmentsTool(
   }>;
   totalAppointments: number;
 }> {
-  const response = await mindbodyClient.get<any>('/appointment/staffappointments', {
+  const response = await client.get<any>('/appointment/staffappointments', {
     params: {
       StaffIds: staffIds,
       LocationIds: locationIds,
@@ -88,7 +89,8 @@ export async function addAppointmentTool(
   staffRequested?: boolean,
   executePayment?: boolean,
   sendEmail?: boolean,
-  applyPayment?: boolean
+  applyPayment?: boolean,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   success: boolean;
   appointment?: {
@@ -104,7 +106,7 @@ export async function addAppointmentTool(
   message: string;
 }> {
   try {
-    const response = await mindbodyClient.post<any>('/appointment/addappointment', {
+    const response = await client.post<any>('/appointment/addappointment', {
       ClientId: clientId,
       StaffId: staffId,
       LocationId: locationId,
@@ -150,7 +152,8 @@ export async function updateAppointmentTool(
   notes?: string,
   executePayment?: boolean,
   sendEmail?: boolean,
-  applyPayment?: boolean
+  applyPayment?: boolean,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   success: boolean;
   appointment?: {
@@ -163,7 +166,7 @@ export async function updateAppointmentTool(
   message: string;
 }> {
   try {
-    const response = await mindbodyClient.post<any>('/appointment/updateappointment', {
+    const response = await client.post<any>('/appointment/updateappointment', {
       AppointmentId: appointmentId,
       StaffId: staffId,
       StartDateTime: startDateTime,
@@ -201,7 +204,8 @@ export async function getBookableItemsTool(
   staffIds?: number[],
   startDate?: string,
   endDate?: string,
-  appointmentId?: number
+  appointmentId?: number,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   bookableItems: Array<{
     scheduledItemId: number;
@@ -218,7 +222,7 @@ export async function getBookableItemsTool(
   }>;
   totalItems: number;
 }> {
-  const response = await mindbodyClient.get<any>('/appointment/bookableitems', {
+  const response = await client.get<any>('/appointment/bookableitems', {
     params: {
       SessionTypeIds: sessionTypeIds,
       LocationIds: locationIds,
@@ -256,7 +260,8 @@ export async function getActiveSessionTimesTool(
   sessionTypeIds?: number[],
   startTime?: string,
   endTime?: string,
-  days?: string[] // ['Sunday', 'Monday', etc.]
+  days?: string[],
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   activeTimes: Array<{
     id: number;
@@ -273,7 +278,7 @@ export async function getActiveSessionTimesTool(
   }>;
   totalActiveTimes: number;
 }> {
-  const response = await mindbodyClient.get<any>('/appointment/activesessiontimes', {
+  const response = await client.get<any>('/appointment/activesessiontimes', {
     params: {
       ScheduleType: scheduleType || 'All',
       SessionTypeIds: sessionTypeIds,
@@ -318,7 +323,8 @@ export async function getScheduleItemsTool(
   staffIds?: number[],
   startDate?: string,
   endDate?: string,
-  ignorePrepFinishBuffer: boolean = false
+  ignorePrepFinishBuffer: boolean = false,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   scheduleItems: Array<{
     id: number;
@@ -335,7 +341,7 @@ export async function getScheduleItemsTool(
   }>;
   totalItems: number;
 }> {
-  const response = await mindbodyClient.get<any>('/appointment/scheduleitems', {
+  const response = await client.get<any>('/appointment/scheduleitems', {
     params: {
       LocationIds: locationIds,
       StaffIds: staffIds,

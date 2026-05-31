@@ -1,5 +1,5 @@
-import { mindbodyClient } from '../api/client';
-import { teacherCache, classCache } from '../cache/index';
+import { mindbodyClient, type IMindbodyClient } from '../api/client';
+import { teacherCache, classCache, SimpleCache } from '../cache/index';
 import {
   GetStaffRequest,
   GetStaffResponse,
@@ -17,10 +17,14 @@ import {
   getDateOnly,
 } from '../utils/dates';
 
-async function findTeacherByName(name: string): Promise<Staff | null> {
+async function findTeacherByName(
+  name: string,
+  client: IMindbodyClient = mindbodyClient,
+  cache: SimpleCache = teacherCache
+): Promise<Staff | null> {
   const cacheKey = `teacher:${name.toLowerCase()}`;
-  const cached = teacherCache.get<Staff>(cacheKey);
-  
+  const cached = cache.get<Staff>(cacheKey);
+
   if (cached) {
     return cached;
   }
@@ -30,7 +34,7 @@ async function findTeacherByName(name: string): Promise<Staff | null> {
     Limit: 100,
   };
 
-  const response = await mindbodyClient.get<GetStaffResponse>('/staff/staff', {
+  const response = await client.get<GetStaffResponse>('/staff/staff', {
     params: request,
   });
 
@@ -41,7 +45,7 @@ async function findTeacherByName(name: string): Promise<Staff | null> {
   );
 
   if (teacher) {
-    teacherCache.set(cacheKey, teacher);
+    cache.set(cacheKey, teacher);
   }
 
   return teacher || null;
@@ -50,10 +54,16 @@ async function findTeacherByName(name: string): Promise<Staff | null> {
 export async function getTeacherScheduleTool(
   teacherName: string,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  client: IMindbodyClient = mindbodyClient,
+  teacherCacheOverride?: SimpleCache,
+  classCacheOverride?: SimpleCache
 ): Promise<TeacherSchedule> {
+  const tCache = teacherCacheOverride || teacherCache;
+  const cCache = classCacheOverride || classCache;
+
   // Find the teacher
-  const teacher = await findTeacherByName(teacherName);
+  const teacher = await findTeacherByName(teacherName, client, tCache);
   
   if (!teacher) {
     throw new Error(`Teacher "${teacherName}" not found. Please check the spelling and try again.`);
@@ -66,7 +76,7 @@ export async function getTeacherScheduleTool(
 
   // Check cache for classes
   const cacheKey = `classes:${teacher.Id}:${dateRange.start}:${dateRange.end}`;
-  let classes = classCache.get<GetClassesResponse>(cacheKey);
+  let classes = cCache.get<GetClassesResponse>(cacheKey);
 
   if (!classes) {
     // Fetch classes from API
@@ -77,11 +87,11 @@ export async function getTeacherScheduleTool(
       Limit: 200, // Max allowed
     };
 
-    classes = await mindbodyClient.get<GetClassesResponse>('/class/classes', {
+    classes = await client.get<GetClassesResponse>('/class/classes', {
       params: request,
     });
 
-    classCache.set(cacheKey, classes);
+    cCache.set(cacheKey, classes);
   }
 
   // Process and format the results

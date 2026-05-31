@@ -1,8 +1,11 @@
-import { mindbodyClient } from '../api/client';
-import { classCache } from '../cache/index';
+import { mindbodyClient, type IMindbodyClient } from '../api/client';
+import { classCache, SimpleCache } from '../cache/index';
 
 // Get site information
-export async function getSitesTool(): Promise<{
+export async function getSitesTool(
+  client: IMindbodyClient = mindbodyClient,
+  cache: SimpleCache = classCache
+): Promise<{
   site: {
     id: number;
     name: string;
@@ -26,13 +29,13 @@ export async function getSitesTool(): Promise<{
   };
 }> {
   const cacheKey = 'site-info';
-  let cached = classCache.get<any>(cacheKey);
+  let cached = cache.get<any>(cacheKey);
 
   if (!cached) {
-    cached = await mindbodyClient.get<any>('/site/sites', {
+    cached = await client.get<any>('/site/sites', {
       params: { Limit: 1 },
     });
-    classCache.set(cacheKey, cached, 60); // Cache for 60 minutes
+    cache.set(cacheKey, cached, 60); // Cache for 60 minutes
   }
 
   const site = cached.Sites[0];
@@ -62,7 +65,10 @@ export async function getSitesTool(): Promise<{
 }
 
 // Get locations (studio locations)
-export async function getLocationsTool(): Promise<{
+export async function getLocationsTool(
+  client: IMindbodyClient = mindbodyClient,
+  cache: SimpleCache = classCache
+): Promise<{
   locations: Array<{
     id: number;
     name: string;
@@ -95,13 +101,13 @@ export async function getLocationsTool(): Promise<{
   totalLocations: number;
 }> {
   const cacheKey = 'locations';
-  let cached = classCache.get<any>(cacheKey);
+  let cached = cache.get<any>(cacheKey);
 
   if (!cached) {
-    cached = await mindbodyClient.get<any>('/site/locations', {
+    cached = await client.get<any>('/site/locations', {
       params: { Limit: 100 },
     });
-    classCache.set(cacheKey, cached, 60); // Cache for 60 minutes
+    cache.set(cacheKey, cached, 60); // Cache for 60 minutes
   }
 
   const locations = cached.Locations.map((location: any) => ({
@@ -143,7 +149,8 @@ export async function getLocationsTool(): Promise<{
 // Get programs (yoga, pilates, etc.)
 export async function getProgramsTool(
   scheduleType?: 'All' | 'Class' | 'Enrollment' | 'Appointment',
-  onlineOnly: boolean = false
+  onlineOnly: boolean = false,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   programs: Array<{
     id: number;
@@ -154,7 +161,7 @@ export async function getProgramsTool(
   }>;
   totalPrograms: number;
 }> {
-  const response = await mindbodyClient.get<any>('/site/programs', {
+  const response = await client.get<any>('/site/programs', {
     params: {
       ScheduleType: scheduleType || 'All',
       OnlineOnly: onlineOnly,
@@ -181,7 +188,8 @@ export async function getResourcesTool(
   sessionTypeIds?: number[],
   locationId?: number,
   startDateTime?: string,
-  endDateTime?: string
+  endDateTime?: string,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   resources: Array<{
     id: number;
@@ -189,7 +197,7 @@ export async function getResourcesTool(
   }>;
   totalResources: number;
 }> {
-  const response = await mindbodyClient.get<any>('/site/resources', {
+  const response = await client.get<any>('/site/resources', {
     params: {
       SessionTypeIds: sessionTypeIds,
       LocationId: locationId,
@@ -212,7 +220,8 @@ export async function getResourcesTool(
 // Get session types (class types, appointment types)
 export async function getSessionTypesTool(
   programIds?: number[],
-  onlineOnly: boolean = false
+  onlineOnly: boolean = false,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   sessionTypes: Array<{
     id: number;
@@ -229,7 +238,7 @@ export async function getSessionTypesTool(
   }>;
   totalSessionTypes: number;
 }> {
-  const response = await mindbodyClient.get<any>('/site/sessiontypes', {
+  const response = await client.get<any>('/site/sessiontypes', {
     params: {
       ProgramIds: programIds,
       OnlineOnly: onlineOnly,
@@ -263,7 +272,8 @@ export async function getStaffTool(
   filters?: string[],
   sessionTypeIds?: number[],
   locationIds?: number[],
-  startDateTime?: string
+  startDateTime?: string,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   staff: Array<{
     id: number;
@@ -290,7 +300,7 @@ export async function getStaffTool(
   }>;
   totalStaff: number;
 }> {
-  const response = await mindbodyClient.get<any>('/staff/staff', {
+  const response = await client.get<any>('/staff/staff', {
     params: {
       StaffIds: staffIds,
       Filters: filters,
@@ -332,11 +342,13 @@ export async function getStaffTool(
 }
 
 // Get activation code (for site activation)
-export async function getActivationCodeTool(): Promise<{
+export async function getActivationCodeTool(
+  client: IMindbodyClient = mindbodyClient
+): Promise<{
   activationCode: string;
   activationLink: string;
 }> {
-  const response = await mindbodyClient.get<any>('/site/activationcode');
+  const response = await client.get<any>('/site/activationcode');
 
   return {
     activationCode: response.ActivationCode,

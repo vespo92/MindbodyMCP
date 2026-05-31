@@ -1,12 +1,13 @@
-import { mindbodyClient } from '../api/client';
-import { classCache } from '../cache/index';
+import { mindbodyClient, type IMindbodyClient } from '../api/client';
+import { SimpleCache } from '../cache/index';
 
 // Get clients with search and filtering
 export async function getClientsTool(
   searchText?: string,
   clientIds?: string[],
   lastModifiedDate?: string,
-  isProspect?: boolean
+  isProspect?: boolean,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   clients: Array<{
     id: string;
@@ -37,7 +38,7 @@ export async function getClientsTool(
   }>;
   totalClients: number;
 }> {
-  const response = await mindbodyClient.get<any>('/client/clients', {
+  const response = await client.get<any>('/client/clients', {
     params: {
       SearchText: searchText,
       ClientIds: clientIds,
@@ -97,7 +98,8 @@ export async function addClientTool(
   emergencyContactPhone?: string,
   emergencyContactRelationship?: string,
   sendAccountEmails: boolean = true,
-  referredBy?: string
+  referredBy?: string,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   success: boolean;
   client?: {
@@ -109,7 +111,7 @@ export async function addClientTool(
   message: string;
 }> {
   try {
-    const response = await mindbodyClient.post<any>('/client/addclient', {
+    const response = await client.post<any>('/client/addclient', {
       FirstName: firstName,
       LastName: lastName,
       Email: email,
@@ -161,7 +163,8 @@ export async function updateClientTool(
     emergencyContactName?: string;
     emergencyContactPhone?: string;
     sendAccountEmails?: boolean;
-  }
+  },
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   success: boolean;
   client?: {
@@ -191,7 +194,7 @@ export async function updateClientTool(
     if (updates.emergencyContactPhone) updateData.EmergencyContactInfoPhone = updates.emergencyContactPhone;
     if (updates.sendAccountEmails !== undefined) updateData.SendAccountEmails = updates.sendAccountEmails;
 
-    const response = await mindbodyClient.post<any>('/client/updateclient', updateData);
+    const response = await client.post<any>('/client/updateclient', updateData);
 
     return {
       success: true,
@@ -215,7 +218,8 @@ export async function updateClientTool(
 export async function getClientVisitsTool(
   clientId: string,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   visits: Array<{
     id: number;
@@ -241,7 +245,7 @@ export async function getClientVisitsTool(
     byInstructor: Record<string, number>;
   };
 }> {
-  const response = await mindbodyClient.get<any>('/client/clientvisits', {
+  const response = await client.get<any>('/client/clientvisits', {
     params: {
       ClientId: clientId,
       StartDate: startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -293,7 +297,8 @@ export async function getClientVisitsTool(
 // Get active client memberships
 export async function getClientMembershipsTool(
   clientId: string,
-  locationId?: number
+  locationId?: number,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   memberships: Array<{
     id: number;
@@ -309,7 +314,7 @@ export async function getClientMembershipsTool(
   }>;
   totalMemberships: number;
 }> {
-  const response = await mindbodyClient.get<any>('/client/activeclientmemberships', {
+  const response = await client.get<any>('/client/activeclientmemberships', {
     params: {
       ClientId: clientId,
       LocationId: locationId,
@@ -338,14 +343,15 @@ export async function getClientMembershipsTool(
 // Add client arrival (check-in)
 export async function addClientArrivalTool(
   clientId: string,
-  locationId: number
+  locationId: number,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   success: boolean;
   arrivalAdded: boolean;
   message: string;
 }> {
   try {
-    const response = await mindbodyClient.post<any>('/client/addarrival', {
+    const response = await client.post<any>('/client/addarrival', {
       ClientId: clientId,
       LocationId: locationId,
     });
@@ -366,7 +372,8 @@ export async function addClientArrivalTool(
 
 // Get client account balances
 export async function getClientAccountBalancesTool(
-  clientId: string
+  clientId: string,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   accountBalance: number;
   creditCardBalances: Array<{
@@ -375,16 +382,16 @@ export async function getClientAccountBalancesTool(
     lastFour: string;
   }>;
 }> {
-  const response = await mindbodyClient.get<any>('/client/clientaccountbalances', {
+  const response = await client.get<any>('/client/clientaccountbalances', {
     params: {
       ClientIds: [clientId],
     },
   });
 
-  const client = response.Clients[0];
+  const clientData = response.Clients[0];
   return {
-    accountBalance: client.AccountBalance || 0,
-    creditCardBalances: client.ClientCreditCards?.map((card: any) => ({
+    accountBalance: clientData.AccountBalance || 0,
+    creditCardBalances: clientData.ClientCreditCards?.map((card: any) => ({
       amount: card.Balance || 0,
       cardType: card.CardType,
       lastFour: card.LastFour,
@@ -394,7 +401,8 @@ export async function getClientAccountBalancesTool(
 
 // Get client contracts (memberships/packages)
 export async function getClientContractsTool(
-  clientId: string
+  clientId: string,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   contracts: Array<{
     id: number;
@@ -410,7 +418,7 @@ export async function getClientContractsTool(
   }>;
   totalContracts: number;
 }> {
-  const response = await mindbodyClient.get<any>('/client/clientcontracts', {
+  const response = await client.get<any>('/client/clientcontracts', {
     params: {
       ClientId: clientId,
     },
