@@ -62,7 +62,8 @@
     "node:dev": "tsx src/index.ts",
     "node:dev:sse": "tsx src/index.ts --transport sse",
     "prepublishOnly": "npm run build",
-    "prepare": "npm run build || true"
+    "prepare": "npm run build || true",
+    "spec:update": "bun run scripts/update-spec.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.2",
