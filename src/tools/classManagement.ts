@@ -1,5 +1,5 @@
-import { mindbodyClient } from '../api/client';
-import { classCache } from '../cache/index';
+import { mindbodyClient, type IMindbodyClient } from '../api/client';
+import { classCache, SimpleCache } from '../cache/index';
 import {
   GetClassesRequest,
   GetClassesResponse,
@@ -13,7 +13,9 @@ export async function getClassesTool(
   endDate?: string,
   locationIds?: number[],
   classDescriptionIds?: number[],
-  staffIds?: number[]
+  staffIds?: number[],
+  client: IMindbodyClient = mindbodyClient,
+  cache: SimpleCache = classCache
 ): Promise<{
   classes: Array<{
     id: number;
@@ -39,7 +41,7 @@ export async function getClassesTool(
   };
 }> {
   const cacheKey = `classes:${startDate}:${endDate}:${locationIds?.join(',')}:${classDescriptionIds?.join(',')}:${staffIds?.join(',')}`;
-  let cached = classCache.get<GetClassesResponse>(cacheKey);
+  let cached = cache.get<GetClassesResponse>(cacheKey);
 
   if (!cached) {
     const request: GetClassesRequest = {
@@ -51,11 +53,11 @@ export async function getClassesTool(
       Limit: 200,
     };
 
-    cached = await mindbodyClient.get<GetClassesResponse>('/class/classes', {
+    cached = await client.get<GetClassesResponse>('/class/classes', {
       params: request,
     });
 
-    classCache.set(cacheKey, cached);
+    cache.set(cacheKey, cached);
   }
 
   // Process and format results
@@ -96,7 +98,10 @@ export async function getClassesTool(
 }
 
 // Get class descriptions (types of classes offered)
-export async function getClassDescriptionsTool(): Promise<{
+export async function getClassDescriptionsTool(
+  client: IMindbodyClient = mindbodyClient,
+  cache: SimpleCache = classCache
+): Promise<{
   classTypes: Array<{
     id: number;
     name: string;
@@ -108,13 +113,13 @@ export async function getClassDescriptionsTool(): Promise<{
   totalTypes: number;
 }> {
   const cacheKey = 'class-descriptions';
-  let cached = classCache.get<any>(cacheKey);
+  let cached = cache.get<any>(cacheKey);
 
   if (!cached) {
-    cached = await mindbodyClient.get<any>('/class/classdescriptions', {
+    cached = await client.get<any>('/class/classdescriptions', {
       params: { Limit: 200 },
     });
-    classCache.set(cacheKey, cached, 60); // Cache for 60 minutes
+    cache.set(cacheKey, cached, 60); // Cache for 60 minutes
   }
 
   const classTypes = cached.ClassDescriptions.map((desc: any) => ({
@@ -137,7 +142,9 @@ export async function addClientToClassTool(
   clientId: string,
   classId: number,
   requirePayment: boolean = true,
-  waitlist: boolean = false
+  waitlist: boolean = false,
+  client: IMindbodyClient = mindbodyClient,
+  cache: SimpleCache = classCache
 ): Promise<{
   success: boolean;
   visitId?: number;
@@ -146,7 +153,7 @@ export async function addClientToClassTool(
   amountDue?: number;
 }> {
   try {
-    const response = await mindbodyClient.post<any>('/class/addclienttoclass', {
+    const response = await client.post<any>('/class/addclienttoclass', {
       ClientId: clientId,
       ClassId: classId,
       RequirePayment: requirePayment,
@@ -154,7 +161,7 @@ export async function addClientToClassTool(
     });
 
     // Clear cache after booking
-    classCache.clear();
+    cache.clear();
 
     return {
       success: true,
@@ -175,20 +182,22 @@ export async function addClientToClassTool(
 export async function removeClientFromClassTool(
   clientId: string,
   classId: number,
-  lateCancel: boolean = false
+  lateCancel: boolean = false,
+  client: IMindbodyClient = mindbodyClient,
+  cache: SimpleCache = classCache
 ): Promise<{
   success: boolean;
   message: string;
 }> {
   try {
-    await mindbodyClient.post('/class/removeclientfromclass', {
+    await client.post('/class/removeclientfromclass', {
       ClientId: clientId,
       ClassId: classId,
       LateCancel: lateCancel,
     });
 
     // Clear cache after cancellation
-    classCache.clear();
+    cache.clear();
 
     return {
       success: true,
@@ -206,7 +215,8 @@ export async function removeClientFromClassTool(
 export async function getWaitlistEntriesTool(
   classScheduleIds?: number[],
   classIds?: number[],
-  clientIds?: string[]
+  clientIds?: string[],
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   entries: Array<{
     classId: number;
@@ -220,7 +230,7 @@ export async function getWaitlistEntriesTool(
   }>;
   totalEntries: number;
 }> {
-  const response = await mindbodyClient.get<any>('/class/waitlistentries', {
+  const response = await client.get<any>('/class/waitlistentries', {
     params: {
       ClassScheduleIds: classScheduleIds,
       ClassIds: classIds,
@@ -251,7 +261,9 @@ export async function substituteClassTeacherTool(
   classId: number,
   originalTeacherId: number,
   substituteTeacherId: number,
-  substituteTeacherName?: string
+  substituteTeacherName?: string,
+  client: IMindbodyClient = mindbodyClient,
+  cache: SimpleCache = classCache
 ): Promise<{
   success: boolean;
   message: string;
@@ -264,7 +276,7 @@ export async function substituteClassTeacherTool(
   };
 }> {
   try {
-    const response = await mindbodyClient.post<any>('/class/substituteclassteacher', {
+    const response = await client.post<any>('/class/substituteclassteacher', {
       ClassId: classId,
       StaffId: originalTeacherId,
       SubstituteStaffId: substituteTeacherId,
@@ -272,7 +284,7 @@ export async function substituteClassTeacherTool(
     });
 
     // Clear cache after substitution
-    classCache.clear();
+    cache.clear();
 
     return {
       success: true,
@@ -298,7 +310,8 @@ export async function getClassSchedulesTool(
   locationIds?: number[],
   classDescriptionIds?: number[],
   staffIds?: number[],
-  programIds?: number[]
+  programIds?: number[],
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   schedules: Array<{
     id: number;
@@ -314,7 +327,7 @@ export async function getClassSchedulesTool(
   }>;
   totalSchedules: number;
 }> {
-  const response = await mindbodyClient.get<any>('/class/classschedules', {
+  const response = await client.get<any>('/class/classschedules', {
     params: {
       LocationIds: locationIds,
       ClassDescriptionIds: classDescriptionIds,
@@ -346,7 +359,8 @@ export async function getClassSchedulesTool(
 // Get visits for a specific class (attendance/booking history)
 export async function getClassVisitsTool(
   classId: number,
-  lastModifiedDate?: string
+  lastModifiedDate?: string,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   classInfo: {
     id: number;
@@ -383,11 +397,10 @@ export async function getClassVisitsTool(
     totalWebSignups: number;
   };
 }> {
-  const response = await mindbodyClient.get<any>('/class/classvisits', {
+  const response = await client.get<any>('/class/classvisits', {
     params: {
       ClassId: classId,
       LastModifiedDate: lastModifiedDate,
-      Limit: 200,
     },
   });
 

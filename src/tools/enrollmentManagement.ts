@@ -1,4 +1,4 @@
-import { mindbodyClient } from '../api/client';
+import { mindbodyClient, type IMindbodyClient } from '../api/client';
 
 // Get enrollments (courses, workshops, series)
 export async function getEnrollmentsTool(
@@ -10,7 +10,8 @@ export async function getEnrollmentsTool(
   semesterIds?: number[],
   courseIds?: number[],
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   enrollments: Array<{
     id: string;
@@ -41,7 +42,7 @@ export async function getEnrollmentsTool(
   }>;
   totalEnrollments: number;
 }> {
-  const response = await mindbodyClient.get<any>('/enrollment/enrollments', {
+  const response = await client.get<any>('/enrollment/enrollments', {
     params: {
       LocationIds: locationIds,
       ClassScheduleIds: classScheduleIds,
@@ -99,7 +100,8 @@ export async function addClientToEnrollmentTool(
   enroll: boolean = true,
   waitlist: boolean = false,
   sendEmail: boolean = true,
-  testMode: boolean = false
+  testMode: boolean = false,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   success: boolean;
   enrollments?: Array<{
@@ -117,7 +119,7 @@ export async function addClientToEnrollmentTool(
   message: string;
 }> {
   try {
-    const response = await mindbodyClient.post<any>('/enrollment/addclienttoenrollment', {
+    const response = await client.post<any>('/enrollment/addclienttoenrollment', {
       ClientId: clientId,
       ClassScheduleIds: classScheduleIds,
       EnrollmentDateForward: enrollmentDateForward,
@@ -157,7 +159,8 @@ export async function addClientToEnrollmentTool(
 
 // Get client enrollments
 export async function getClientEnrollmentsTool(
-  clientId: string
+  clientId: string,
+  client: IMindbodyClient = mindbodyClient
 ): Promise<{
   enrollments: Array<{
     id: string;
@@ -176,7 +179,7 @@ export async function getClientEnrollmentsTool(
   }>;
   totalEnrollments: number;
 }> {
-  const response = await mindbodyClient.get<any>('/client/clientenrollments', {
+  const response = await client.get<any>('/client/clientenrollments', {
     params: {
       ClientId: clientId,
     },
