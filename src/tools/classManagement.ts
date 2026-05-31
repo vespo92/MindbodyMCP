@@ -401,7 +401,6 @@ export async function getClassVisitsTool(
     params: {
       ClassId: classId,
       LastModifiedDate: lastModifiedDate,
-      Limit: 200,
     },
   });
 
